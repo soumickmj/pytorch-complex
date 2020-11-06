@@ -3,6 +3,7 @@ import torch
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parameter import Parameter
+from torch.nn import ParameterList
 from .. import functional as cF
 from torch.nn import init
 
@@ -36,7 +37,20 @@ class _NormBase(Module):
         self.track_running_stats = track_running_stats
         self.naive = naive
         if naive:
-            sys.exit("Not implimented")
+            if self.affine:
+                self.weight = ParameterList([Parameter(torch.Tensor(num_features)), Parameter(torch.Tensor(num_features))])
+                self.bias = ParameterList([Parameter(torch.Tensor(num_features)), Parameter(torch.Tensor(num_features))])
+            else:
+                self.register_parameter('weight', None)
+                self.register_parameter('bias', None)
+            if self.track_running_stats:
+                self.register_buffer('running_mean', torch.zeros(2, num_features))
+                self.register_buffer('running_var', torch.ones(2, num_features))
+                self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+            else:
+                self.register_parameter('running_mean', None)
+                self.register_parameter('running_var', None)
+                self.register_parameter('num_batches_tracked', None)
         else:
             if self.affine:
                 self.weight = Parameter(torch.empty(2, 2, num_features))
@@ -52,27 +66,42 @@ class _NormBase(Module):
                 self.register_parameter('running_mean', None)
                 self.register_parameter('running_var', None)
                 self.register_parameter('num_batches_tracked', None)
-            self.reset_parameters()
+        self.reset_parameters()
 
     def reset_running_stats(self) -> None:
-        if self.track_running_stats:
-            # running_mean/running_var/num_batches... are registerd at runtime depending
-            # if self.track_running_stats is on
-            self.running_mean.zero_()  # type: ignore[operator]
-            self.running_var[0, 0].fill_(1)
-            self.running_var[1, 0].zero_()
-            self.running_var[0, 1].zero_()
-            self.running_var[1, 1].fill_(1)
-            self.num_batches_tracked.zero_()  # type: ignore[operator]
+        if self.naive:
+            if self.track_running_stats:
+                # running_mean/running_var/num_batches... are registerd at runtime depending
+                # if self.track_running_stats is on
+                self.running_mean.zero_()  # type: ignore[operator]
+                self.running_var.fill_(1)  # type: ignore[operator]
+                self.num_batches_tracked.zero_()  # type: ignore[operator]
+        else:
+            if self.track_running_stats:
+                # running_mean/running_var/num_batches... are registerd at runtime depending
+                # if self.track_running_stats is on
+                self.running_mean.zero_()  # type: ignore[operator]
+                self.running_var[0, 0].fill_(1)
+                self.running_var[1, 0].zero_()
+                self.running_var[0, 1].zero_()
+                self.running_var[1, 1].fill_(1)
+                self.num_batches_tracked.zero_()  # type: ignore[operator]
 
     def reset_parameters(self) -> None:
         self.reset_running_stats()
-        if self.affine:
-            init.ones_(self.weight[0, 0])
-            init.zeros_(self.weight[1, 0])
-            init.zeros_(self.weight[0, 1])
-            init.ones_(self.weight[1, 1])
-            init.zeros_(self.bias)
+        if self.naive:
+            if self.affine:
+                init.ones_(self.weight[0])
+                init.zeros_(self.bias[0])
+                init.ones_(self.weight[1])
+                init.zeros_(self.bias[1])
+        else:
+            if self.affine:
+                init.ones_(self.weight[0, 0])
+                init.zeros_(self.weight[1, 0])
+                init.zeros_(self.weight[0, 1])
+                init.ones_(self.weight[1, 1])
+                init.zeros_(self.bias)
 
     def _check_input_dim(self, input):
         raise NotImplementedError
@@ -100,55 +129,51 @@ class _NormBase(Module):
 class _BatchNorm(_NormBase):
 
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
-                 track_running_stats=True, ):
+                 track_running_stats=True, naive=False):
         super(_BatchNorm, self).__init__(
-            num_features, eps, momentum, affine, track_running_stats)
+            num_features, eps, momentum, affine, track_running_stats, naive)
 
     def forward(self, input: Tensor) -> Tensor:
         self._check_input_dim(input)
 
-        if self.naive:
-            sys.exit("Not implimented")
+        # exponential_average_factor is set to self.momentum
+        # (when it is available) only so that it gets updated
+        # in ONNX graph when this node is exported to ONNX.
+        if self.momentum is None:
+            exponential_average_factor = 0.0
         else:
-            # exponential_average_factor is set to self.momentum
-            # (when it is available) only so that it gets updated
-            # in ONNX graph when this node is exported to ONNX.
-            if self.momentum is None:
-                exponential_average_factor = 0.0
-            else:
-                exponential_average_factor = self.momentum
+            exponential_average_factor = self.momentum
 
-            if self.training and self.track_running_stats:
-                # TODO: if statement only here to tell the jit to skip emitting this when it is None
-                if self.num_batches_tracked is not None:  # type: ignore
-                    self.num_batches_tracked = self.num_batches_tracked + 1  # type: ignore
-                    if self.momentum is None:  # use cumulative moving average
-                        exponential_average_factor = 1.0 / float(self.num_batches_tracked)
-                    else:  # use exponential moving average
-                        exponential_average_factor = self.momentum
+        if self.training and self.track_running_stats:
+            # TODO: if statement only here to tell the jit to skip emitting this when it is None
+            if self.num_batches_tracked is not None:  # type: ignore
+                self.num_batches_tracked = self.num_batches_tracked + 1  # type: ignore
+                if self.momentum is None:  # use cumulative moving average
+                    exponential_average_factor = 1.0 / float(self.num_batches_tracked)
+                else:  # use exponential moving average
+                    exponential_average_factor = self.momentum
 
-            r"""
-            Decide whether the mini-batch stats should be used for normalization rather than the buffers.
-            Mini-batch stats are used in training mode, and in eval mode when buffers are None.
-            """
-            if self.training:
-                bn_training = True
-            else:
-                bn_training = (self.running_mean is None) and (self.running_var is None)
+        r"""
+        Decide whether the mini-batch stats should be used for normalization rather than the buffers.
+        Mini-batch stats are used in training mode, and in eval mode when buffers are None.
+        """
+        if self.training:
+            bn_training = True
+        else:
+            bn_training = (self.running_mean is None) and (self.running_var is None)
 
-            r"""
-            Buffers are only updated if they are to be tracked and we are in training mode. Thus they only need to be
-            passed when the update should occur (i.e. in training mode when they are tracked), or when buffer stats are
-            used for normalization (i.e. in eval mode when buffers are not None).
-            """
-            assert self.running_mean is None or isinstance(self.running_mean, torch.Tensor)
-            assert self.running_var is None or isinstance(self.running_var, torch.Tensor)
-            return cF.batch_norm(
-                input,
-                # If buffers are not to be tracked, ensure that they won't be updated
-                self.running_mean if not self.training or self.track_running_stats else None,
-                self.running_var if not self.training or self.track_running_stats else None,
-                self.weight, self.bias, bn_training, exponential_average_factor, self.eps)
+        r"""
+        Buffers are only updated if they are to be tracked and we are in training mode. Thus they only need to be
+        passed when the update should occur (i.e. in training mode when they are tracked), or when buffer stats are
+        used for normalization (i.e. in eval mode when buffers are not None).
+        """
+        assert self.running_mean is None or isinstance(self.running_mean, torch.Tensor)
+        assert self.running_var is None or isinstance(self.running_var, torch.Tensor)
+        return cF.batch_norm(input,
+                            # If buffers are not to be tracked, ensure that they won't be updated
+                            self.running_mean if not self.training or self.track_running_stats else None,
+                            self.running_var if not self.training or self.track_running_stats else None,
+                            self.weight, self.bias, bn_training, exponential_average_factor, self.eps, self.naive)
 
 
 class BatchNorm1d(_BatchNorm):

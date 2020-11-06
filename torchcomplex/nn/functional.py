@@ -209,27 +209,38 @@ def _whiten2x2(tensor, training=True, running_mean=None, running_cov=None,
     return out  # , torch.cat([p, q, r, s], dim=0).reshape(2, 2, -1)
 
 def batch_norm(input, running_mean, running_var, weight=None, bias=None,
-               training=False, momentum=0.1, eps=1e-5):
+               training=False, momentum=0.1, eps=1e-5, naive=False):
 
     """
     Source: Source: https://github.com/ivannz/cplxmodule/blob/master/cplxmodule/nn/modules/batchnorm.py
     """
-    # stack along the first axis
-    x = torch.stack([input.real, input.imag], dim=0)
+    if naive:
+        real = F.batch_norm(input.real,
+                            running_mean[0] if running_mean is not None else None,
+                            running_var[0] if running_var is not None else None,
+                            weight[0], bias[0], training, momentum, eps)
+        imag = F.batch_norm(input.imag,
+                            running_mean[1] if running_mean is not None else None,
+                            running_var[1] if running_var is not None else None,
+                            weight[1], bias[1], training, momentum, eps)
+        return torch.view_as_complex(torch.stack((real, imag),dim=-1))
+    else:
+        # stack along the first axis
+        x = torch.stack([input.real, input.imag], dim=0)
 
-    # whiten and apply affine transformation
-    z = _whiten2x2(x, training=training, running_mean=running_mean,
-                  running_cov=running_var, momentum=momentum, nugget=eps)
+        # whiten and apply affine transformation
+        z = _whiten2x2(x, training=training, running_mean=running_mean,
+                    running_cov=running_var, momentum=momentum, nugget=eps)
 
-    if weight is not None and bias is not None:
-        shape = 1, x.shape[2], *([1] * (x.dim() - 3))
-        weight = weight.reshape(2, 2, *shape)
-        z = torch.stack([
-            z[0] * weight[0, 0] + z[1] * weight[0, 1],
-            z[0] * weight[1, 0] + z[1] * weight[1, 1],
-        ], dim=0) + bias.reshape(2, *shape)
+        if weight is not None and bias is not None:
+            shape = 1, x.shape[2], *([1] * (x.dim() - 3))
+            weight = weight.reshape(2, 2, *shape)
+            z = torch.stack([
+                z[0] * weight[0, 0] + z[1] * weight[0, 1],
+                z[0] * weight[1, 0] + z[1] * weight[1, 1],
+            ], dim=0) + bias.reshape(2, *shape)
 
-    return torch.view_as_complex(torch.stack((z[0], z[1]),dim=-1))
+        return torch.view_as_complex(torch.stack((z[0], z[1]),dim=-1))
 
 
 # Activations
