@@ -6,6 +6,21 @@ from .. import functional as cF
 from torch.nn.modules import Module
 from typing import Optional, List, Tuple, Union
 
+class GenericComplexActivation(Module):
+    def __init__(self, activation, use_phase: bool = False):
+        '''
+        activation can be either a function from nn.functional or an object of nn.Module if the ativation has learnable parameters
+        Original idea from: https://github.com/albanD
+        '''
+        self.activation = activation
+        self.use_phase = use_phase
+
+    def forward(self, input: Tensor):
+        if self.use_phase:
+            return self.activation(torch.abs(input)) * torch.exp(1.j * torch.angle(input)) 
+        else:
+            return self.activation(input.real) + 1.j * self.activation(input.imag)
+
 class CReLU(Module):
     '''
     Eq.(4)
