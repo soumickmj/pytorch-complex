@@ -22,7 +22,7 @@ tests_requirements = [
 
 setuptools.setup(
     name="pytorch-complex", 
-    version="0.0.1",
+    version="0.0.4",
     author="Soumick Chatterjee",
     author_email="soumick.chatterjee@ovgu.de",
     description="Complex Modules for PyTorch",

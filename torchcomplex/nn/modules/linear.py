@@ -3,6 +3,7 @@ import math
 import torch
 from torch import Tensor
 from torch.nn.parameter import Parameter#, UninitializedParameter
+from torch.nn import ParameterList
 from torch.nn import functional as F
 from .. import functional as cF
 from torch.nn import init
@@ -63,7 +64,7 @@ class Linear(Module):
         else:
             weight_real = Parameter(torch.Tensor(out_features, in_features))
             weight_imag = Parameter(torch.Tensor(out_features, in_features))
-            self.weight = (weight_real, weight_imag)
+            self.weight = ParameterList([weight_real, weight_imag])
 
         if bias:
             if complex_weights:
@@ -71,7 +72,7 @@ class Linear(Module):
             else:
                 bias_real = Parameter(torch.Tensor(out_features))
                 bias_imag = Parameter(torch.Tensor(out_features))
-                self.bias = (bias_real, bias_imag)
+                self.bias = ParameterList([bias_real, bias_imag])
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
@@ -84,7 +85,7 @@ class Linear(Module):
             init.uniform_(bias, -bound, bound)
 
     def reset_parameters(self) -> None:
-        if type(self.weight) is tuple:
+        if type(self.weight) is ParameterList:
             self._reset_parameters(self.weight[0], None if self.bias is None else self.bias[0])
             self._reset_parameters(self.weight[1], None if self.bias is None else self.bias[1])
         else:
@@ -166,7 +167,7 @@ class Bilinear(Module):
         else:
             weight_real = Parameter(torch.Tensor(out_features, in1_features, in2_features))
             weight_imag = Parameter(torch.Tensor(out_features, in1_features, in2_features))
-            self.weight = (weight_real, weight_imag)
+            self.weight = ParameterList([weight_real, weight_imag])
 
         if bias:
             if complex_weights:
@@ -174,7 +175,7 @@ class Bilinear(Module):
             else:
                 bias_real = Parameter(torch.Tensor(out_features))
                 bias_imag = Parameter(torch.Tensor(out_features))
-                self.bias = (bias_real, bias_imag)
+                self.bias = ParameterList([bias_real, bias_imag])
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
@@ -186,7 +187,7 @@ class Bilinear(Module):
             init.uniform_(bias, -bound, bound)
 
     def reset_parameters(self) -> None:
-        if type(self.weight) is tuple:
+        if type(self.weight) is ParameterList:
             self._reset_parameters(self.weight[0], None if self.bias is None else self.bias[0])
             self._reset_parameters(self.weight[1], None if self.bias is None else self.bias[1])
         else:

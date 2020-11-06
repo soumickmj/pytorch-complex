@@ -4,6 +4,7 @@ import math
 
 import torch
 import torch.nn.functional as F
+from torch.nn import ParameterList
 # from torch._C import _infer_size, _add_docstr
 # from torch.nn import _reduction as _Reduction
 # from torch.nn.modules import utils
@@ -39,7 +40,7 @@ def _fcaller(funtinal_handle, *args):
         inp = torch.view_as_real(args[0])
         inp_r = inp[...,0]
         inp_i = inp[...,1]
-    if type(args[1]) is tuple:
+    if type(args[1]) is ParameterList:
         w_r = args[1][0]
         w_i = args[1][1]
         if args[2] is not None:

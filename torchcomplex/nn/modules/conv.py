@@ -5,6 +5,7 @@ import warnings
 import torch
 from torch import Tensor
 from torch.nn.parameter import Parameter
+from torch.nn import ParameterList
 from torch.nn import functional as F
 from .. import functional as cF
 from torch.nn import init
@@ -98,6 +99,7 @@ class _ConvNd(Module):
         # reverse order than the dimension.
         self._reversed_padding_repeated_twice = _reverse_repeat_tuple(self.padding, 2)
 
+        
         if complex_weights:
             if transposed:
                 self.weight = Parameter(torch.Tensor(
@@ -116,7 +118,7 @@ class _ConvNd(Module):
                     out_channels, in_channels // groups, *kernel_size))
                 weight_imag = Parameter(torch.Tensor(
                     out_channels, in_channels // groups, *kernel_size))
-            self.weight = (weight_real, weight_imag)
+            self.weight = ParameterList([weight_real, weight_imag])
 
 
         if bias:
@@ -125,7 +127,7 @@ class _ConvNd(Module):
             else:
                 bias_real = Parameter(torch.Tensor(out_channels))
                 bias_imag = Parameter(torch.Tensor(out_channels))
-                self.bias = (bias_real, bias_imag)
+                self.bias = ParameterList([bias_real, bias_imag])
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
@@ -138,7 +140,7 @@ class _ConvNd(Module):
             init.uniform_(bias, -bound, bound)
 
     def reset_parameters(self) -> None:
-        if type(self.weight) is tuple:
+        if type(self.weight) is ParameterList:
             self._reset_parameters(self.weight[0], None if self.bias is None else self.bias[0])
             self._reset_parameters(self.weight[1], None if self.bias is None else self.bias[1])
         else:
