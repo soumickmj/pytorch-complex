@@ -11,7 +11,7 @@ from torch.nn.modules import Module
 # from torch.nn.modules.lazy import LazyModuleMixin
 from typing import Optional, List, Tuple, Union
 
-from torch.nn import Identity #just to use the torch's version of identity
+from torch.nn import Identity #just to use the torch's version of identity, to help with imports
 
 class Linear(Module):
     r"""Applies a linear transformation to the incoming data: :math:`y = xA^T + b`

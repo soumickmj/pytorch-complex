@@ -1,3 +1,16 @@
+###############
+# just to use the torch's version of these classes, to help with imports are imported here
+#module
+from torch.nn import Module
+
+#containers
+from torch.nn import Container, Sequential, ModuleList, ModuleDict, ParameterList, ParameterDict 
+
+#padding
+from torch.nn import ReflectionPad1d, ReflectionPad2d, ReplicationPad1d, ReplicationPad2d, \
+                    ReplicationPad3d, ZeroPad2d, ConstantPad1d, ConstantPad2d, ConstantPad3d
+###############
+
 from .linear import Identity, Linear, Bilinear
 from .conv import Conv1d, Conv2d, Conv3d, \
     ConvTranspose1d, ConvTranspose2d, ConvTranspose3d
