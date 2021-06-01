@@ -17,7 +17,7 @@ If you like this repository, please click on Star!
 
 If you use this package or benift from the codes of this repo, please cite the following in your publications:
 
-> [Soumick Chatterjee, Chompunuch Sarasaen, Alessandro Sciarra, Mario Breitkopf, Steffen Oeltze-Jafra, Andreas Nürnberger, Oliver Speck: Going beyond the image space: undersampled MRI reconstruction directly in the k-space using a complex valued residual neural network (ISMRM, May 2021)]
+> [Soumick Chatterjee, Chompunuch Sarasaen, Alessandro Sciarra, Mario Breitkopf, Steffen Oeltze-Jafra, Andreas Nürnberger, Oliver Speck: Going beyond the image space: undersampled MRI reconstruction directly in the k-space using a complex valued residual neural network (ISMRM, May 2021)](https://www.researchgate.net/publication/349589092_Going_beyond_the_image_space_undersampled_MRI_reconstruction_directly_in_the_k-space_using_a_complex_valued_residual_neural_network)
 
 BibTeX entry:
 
