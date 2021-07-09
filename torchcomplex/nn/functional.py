@@ -73,6 +73,7 @@ def _fcaller(funtinal_handle, *args):
         MiKr = funtinal_handle(inp1_i, inp2_i, w_r, b_r, *args[3:]) #Imaginary Feature Maps * Real Kernels
     else:
         if args[6] == 1: #groups
+            bias_added = False
             n_out = int(w_r.shape[0])
             w     = torch.cat([w_r, w_i], dim=0)
             MrKri = funtinal_handle(inp_r, w, None, *args[3:])
