@@ -63,7 +63,8 @@ def _fcaller(funtinal_handle, *args):
             b_r = None
             b_i = None
     
-    out = None
+    bias_added = True
+
     # Perform complex valued convolution
     if type(args[0]) is tuple: #only incase of bilinear
         MrKr = funtinal_handle(inp1_r, inp2_r, w_r, b_r, *args[3:]) #Real Feature Maps *(conv) Real Kernels
@@ -78,22 +79,20 @@ def _fcaller(funtinal_handle, *args):
             MiKri = funtinal_handle(inp_i, w, None, *args[3:])
             MrKr,MrKi = MrKri[:, :n_out], MrKri[:, n_out:]
             MiKr,MiKi = MiKri[:, :n_out], MiKri[:, n_out:]
-            real = MrKr - MiKi
-            imag = MrKi + MiKr
-            out  = torch.view_as_complex(torch.stack((real,imag),dim=-1))
-            if b_r is not None and b_ri is not None:
-                bias = torch.view_as_complex(torch.stack((b_r,b_i),dim=-1))
-                broadcast = (out.dim() - 2) * [1]
-                out += bias.reshape(-1, *broadcast)
         else:
             MrKr = funtinal_handle(inp_r, w_r, b_r, *args[3:]) #Real Feature Maps *(conv) Real Kernels
             MiKi = funtinal_handle(inp_i, w_i, b_i, *args[3:]) #Imaginary Feature Maps * Imaginary Kernels
             MrKi = funtinal_handle(inp_r, w_i, b_i, *args[3:]) #Real Feature Maps * Imaginary Kernels
             MiKr = funtinal_handle(inp_i, w_r, b_r, *args[3:]) #Imaginary Feature Maps * Real Kernels
-    if out is None:
-        real = MrKr - MiKi
-        imag = MrKi + MiKr
-        out = torch.view_as_complex(torch.stack((real,imag),dim=-1))
+
+    real = MrKr - MiKi
+    imag = MrKi + MiKr
+    out = torch.view_as_complex(torch.stack((real,imag),dim=-1))
+
+    if not bias_added and b_r is not None and b_ri is not None:
+        bias = torch.view_as_complex(torch.stack((b_r,b_i),dim=-1))
+        broadcast = (out.dim() - 2) * [1]
+        out += bias.reshape(-1, *broadcast)
     
     return out
 
