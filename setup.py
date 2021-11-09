@@ -22,14 +22,14 @@ tests_requirements = [
 
 setuptools.setup(
     name="pytorch-complex", 
-    version="0.0.7.2",
+    version="0.0.8",
     author="Soumick Chatterjee",
     author_email="soumick.chatterjee@ovgu.de",
     description="Complex Modules for PyTorch",
     long_description=readme + '\n\n' + history,
     long_description_content_type="text/markdown",
     url="https://github.com/soumickmj/pytorch-complex",
-    packages=setuptools.find_packages(include=['torchcomplex', 'torchcomplex.*', 'torchcomplex.nn', 'torchcomplex.utils']),
+    packages=setuptools.find_packages(include=['torchcomplex', 'torchcomplex.*']),
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",

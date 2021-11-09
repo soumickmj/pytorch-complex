@@ -97,7 +97,7 @@ class CmodReLU(Module):
     __constants__ = ['inplace']
     inplace: bool
 
-    def __init__(self, threshold: int, inplace: bool = False):
+    def __init__(self, threshold: int = None, inplace: bool = False):
         super(CmodReLU, self).__init__()
         self.inplace = inplace
         if not isinstance(threshold, float):
@@ -120,8 +120,9 @@ class AdaptiveCmodReLU(Module):
     __constants__ = ['inplace']
     inplace: bool
 
-    def __init__(self, *dim):
+    def __init__(self, *dim, inplace: bool = False):
         super(AdaptiveCmodReLU, self).__init__()
+        self.inplace = inplace
         self.dim = dim if dim else (1,)
         self.threshold = Parameter(torch.randn(*self.dim) * 0.02)
 
