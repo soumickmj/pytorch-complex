@@ -63,8 +63,6 @@ def _fcaller(funtinal_handle, *args):
             b_r = None
             b_i = None
     
-    bias_added = True
-
     # Perform complex valued convolution
     if type(args[0]) is tuple: #only incase of bilinear
         MrKr = funtinal_handle(inp1_r, inp2_r, w_r, b_r, *args[3:]) #Real Feature Maps *(conv) Real Kernels
@@ -72,28 +70,13 @@ def _fcaller(funtinal_handle, *args):
         MrKi = funtinal_handle(inp1_r, inp2_r, w_i, b_i, *args[3:]) #Real Feature Maps * Imaginary Kernels
         MiKr = funtinal_handle(inp1_i, inp2_i, w_r, b_r, *args[3:]) #Imaginary Feature Maps * Real Kernels
     else:
-        if args[6] == 1: #groups
-            bias_added = False
-            n_out = int(w_r.shape[0])
-            w     = torch.cat([w_r, w_i], dim=0)
-            MrKri = funtinal_handle(inp_r, w, None, *args[3:])
-            MiKri = funtinal_handle(inp_i, w, None, *args[3:])
-            MrKr,MrKi = MrKri[:, :n_out], MrKri[:, n_out:]
-            MiKr,MiKi = MiKri[:, :n_out], MiKri[:, n_out:]
-        else:
-            MrKr = funtinal_handle(inp_r, w_r, b_r, *args[3:]) #Real Feature Maps *(conv) Real Kernels
-            MiKi = funtinal_handle(inp_i, w_i, b_i, *args[3:]) #Imaginary Feature Maps * Imaginary Kernels
-            MrKi = funtinal_handle(inp_r, w_i, b_i, *args[3:]) #Real Feature Maps * Imaginary Kernels
-            MiKr = funtinal_handle(inp_i, w_r, b_r, *args[3:]) #Imaginary Feature Maps * Real Kernels
-
+        MrKr = funtinal_handle(inp_r, w_r, b_r, *args[3:]) #Real Feature Maps *(conv) Real Kernels
+        MiKi = funtinal_handle(inp_i, w_i, b_i, *args[3:]) #Imaginary Feature Maps * Imaginary Kernels
+        MrKi = funtinal_handle(inp_r, w_i, b_i, *args[3:]) #Real Feature Maps * Imaginary Kernels
+        MiKr = funtinal_handle(inp_i, w_r, b_r, *args[3:]) #Imaginary Feature Maps * Real Kernels
     real = MrKr - MiKi
     imag = MrKi + MiKr
     out = torch.view_as_complex(torch.stack((real,imag),dim=-1))
-
-    if not bias_added and b_r is not None and b_ri is not None:
-        bias = torch.view_as_complex(torch.stack((b_r,b_i),dim=-1))
-        broadcast = (out.dim() - 2) * [1]
-        out += bias.reshape(-1, *broadcast)
     
     return out
 
@@ -270,7 +253,7 @@ def crelu(input: Tensor, inplace: bool = False) -> Tensor:
     https://arxiv.org/pdf/1705.09792.pdf
     '''
     if input.is_complex():
-        return torch.view_as_complex(torch.stack((F.relu(input.real, inplace=inplace), F.relu(input.imag, inplace=inplace)),dim=-1))
+        return torch.view_as_complex(torch.stack((F.relu(input.real), F.relu(input.imag)),dim=-1))
     else:
         return F.relu(input, inplace=inplace)
 
@@ -304,7 +287,7 @@ def cmodrelu(input: Tensor, threshold: int, inplace: bool = False):
     Source: https://github.com/ivannz/cplxmodule"""
     if input.is_complex():
         modulus = torch.clamp(torch.abs(input), min=1e-5)
-        return input * F.relu(1. - threshold / modulus, inplace=inplace)
+        return input * F.relu(1. - threshold / modulus)
     else:
         return F.relu(input, inplace=inplace)
 
