@@ -27,7 +27,8 @@ class _NormBase(Module):
         momentum: float = 0.1,
         affine: bool = True,
         track_running_stats: bool = True,
-        naive = False
+        naive = False,
+        complex_weights = False
     ) -> None:
         super(_NormBase, self).__init__()
         self.num_features = num_features
@@ -36,10 +37,15 @@ class _NormBase(Module):
         self.affine = affine
         self.track_running_stats = track_running_stats
         self.naive = naive
+        self.complex_weights = complex_weights
         if naive:
             if self.affine:
-                self.weight = ParameterList([Parameter(torch.Tensor(num_features)), Parameter(torch.Tensor(num_features))])
-                self.bias = ParameterList([Parameter(torch.Tensor(num_features)), Parameter(torch.Tensor(num_features))])
+                if complex_weights:
+                    self.weight = Parameter(torch.Tensor(num_features).to(torch.cfloat))
+                    self.bias = Parameter(torch.Tensor(num_features).to(torch.cfloat))
+                else:
+                    self.weight = ParameterList([Parameter(torch.Tensor(num_features)), Parameter(torch.Tensor(num_features))])
+                    self.bias = ParameterList([Parameter(torch.Tensor(num_features)), Parameter(torch.Tensor(num_features))])
             else:
                 self.register_parameter('weight', None)
                 self.register_parameter('bias', None)
@@ -91,10 +97,14 @@ class _NormBase(Module):
         self.reset_running_stats()
         if self.naive:
             if self.affine:
-                init.ones_(self.weight[0])
-                init.zeros_(self.bias[0])
-                init.ones_(self.weight[1])
-                init.zeros_(self.bias[1])
+                if self.complex_weights:
+                    init.ones_(self.weight)
+                    init.zeros_(self.bias)
+                else:
+                    init.ones_(self.weight[0])
+                    init.zeros_(self.bias[0])
+                    init.ones_(self.weight[1])
+                    init.zeros_(self.bias[1])
         else:
             if self.affine:
                 init.ones_(self.weight[0, 0])
@@ -129,9 +139,9 @@ class _NormBase(Module):
 class _BatchNorm(_NormBase):
 
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
-                 track_running_stats=True, naive=False):
+                 track_running_stats=True, naive=False, complex_weights=False):
         super(_BatchNorm, self).__init__(
-            num_features, eps, momentum, affine, track_running_stats, naive)
+            num_features, eps, momentum, affine, track_running_stats, naive, complex_weights)
 
     def forward(self, input: Tensor) -> Tensor:
         self._check_input_dim(input)

@@ -216,15 +216,16 @@ def batch_norm(input, running_mean, running_var, weight=None, bias=None,
     """
     Source: Source: https://github.com/ivannz/cplxmodule/blob/master/cplxmodule/nn/modules/batchnorm.py
     """
+    complex_weight = not(type(weight) == torch.nn.ParameterList)
     if naive:
         real = F.batch_norm(input.real,
                             running_mean[0] if running_mean is not None else None,
                             running_var[0] if running_var is not None else None,
-                            weight[0], bias[0], training, momentum, eps)
+                            weight.real if complex_weight else weight[0], bias.real if complex_weight else bias[0], training, momentum, eps)
         imag = F.batch_norm(input.imag,
                             running_mean[1] if running_mean is not None else None,
                             running_var[1] if running_var is not None else None,
-                            weight[1], bias[1], training, momentum, eps)
+                            weight.imag if complex_weight else weight[1], bias.imag if complex_weight else bias[1], training, momentum, eps)
         return torch.view_as_complex(torch.stack((real, imag),dim=-1))
     else:
         # stack along the first axis
@@ -287,7 +288,8 @@ def cmodrelu(input: Tensor, threshold: int, inplace: bool = False):
     Source: https://github.com/ivannz/cplxmodule"""
     if input.is_complex():
         modulus = torch.clamp(torch.abs(input), min=1e-5)
-        return input * F.relu(1. - threshold / modulus)
+        _tmp_newshape = (1,len(threshold)) + (1,)*len(input.shape[2:])
+        return input * F.relu(1. - threshold.view(_tmp_newshape) / modulus)
     else:
         return F.relu(input, inplace=inplace)
 
