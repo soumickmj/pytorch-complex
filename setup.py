@@ -11,7 +11,7 @@ with open('HISTORY.rst', "r", encoding='utf8') as history_file:
     history = history_file.read()
 
 requirements = [
-    'torch>=1.7'
+    'torch>=1.10'
 ]
 
 setup_requirements = [
@@ -22,7 +22,7 @@ tests_requirements = [
 
 setuptools.setup(
     name="pytorch-complex", 
-    version="0.0.8",
+    version="0.0.9",
     author="Soumick Chatterjee",
     author_email="soumick.chatterjee@ovgu.de",
     description="Complex Modules for PyTorch",
