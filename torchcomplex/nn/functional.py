@@ -80,6 +80,8 @@ def _fcaller(funtinal_handle, *args):
     
     return out
 
+#Convolutions
+
 def conv1d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1) -> Tensor:
     return _fcaller(F.conv1d, input, weight, bias, stride, padding, dilation, groups)
 
@@ -97,6 +99,25 @@ def conv_transpose2d(input, weight, bias=None, stride=1, padding=0, output_paddi
 
 def conv_transpose3d(input, weight, bias=None, stride=1, padding=0, output_padding=0, groups=1, dilation=1) -> Tensor:
     return _fcaller(F.conv_transpose3d, input, weight, bias, stride, padding, output_padding, groups, dilation)
+
+#Poolings
+def max_pool1d(input, kernel_size, stride=None, padding=0, dilation=1, ceil_mode=False, return_indices=False) -> Tensor:
+    return _fcaller(F.max_pool1d, input, kernel_size, stride, padding, dilation, ceil_mode, return_indices)
+
+def max_pool2d(input, kernel_size, stride=None, padding=0, dilation=1, ceil_mode=False, return_indices=False) -> Tensor: 
+    return _fcaller(F.max_pool2d, input, kernel_size, stride, padding, dilation, ceil_mode, return_indices)
+
+def max_pool3d(input, kernel_size, stride=None, padding=0, dilation=1, ceil_mode=False, return_indices=False) -> Tensor:
+    return _fcaller(F.max_pool3d, input, kernel_size, stride, padding, dilation, ceil_mode, return_indices)
+
+def avg_pool1d(input, kernel_size, stride=None, padding=0, ceil_mode=False, count_include_pad=True, divisor_override=None) -> Tensor:
+    return _fcaller(F.avg_pool1d, input, kernel_size, stride, padding, ceil_mode, count_include_pad, divisor_override)
+
+def avg_pool2d(input, kernel_size, stride=None, padding=0, ceil_mode=False, count_include_pad=True, divisor_override=None) -> Tensor:
+    return _fcaller(F.avg_pool2d, input, kernel_size, stride, padding, ceil_mode, count_include_pad, divisor_override)
+
+def avg_pool3d(input, kernel_size, stride=None, padding=0, ceil_mode=False, count_include_pad=True, divisor_override=None) -> Tensor:
+    return _fcaller(F.avg_pool3d, input, kernel_size, stride, padding, ceil_mode, count_include_pad, divisor_override)
 
 # Linear
 def linear(input, weight, bias=None):
