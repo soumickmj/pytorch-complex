@@ -268,7 +268,7 @@ class Conv1d(_ConvNd):
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = 'zeros',
-        complex_weights = False
+        complex_weights = True
     ):
         kernel_size = _single(kernel_size)
         stride = _single(stride)
@@ -405,7 +405,7 @@ class Conv2d(_ConvNd):
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = 'zeros',
-        complex_weights = False
+        complex_weights = True
     ):
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
@@ -531,7 +531,7 @@ class Conv3d(_ConvNd):
         groups: int = 1,
         bias: bool = True,
         padding_mode: str = 'zeros',
-        complex_weights = False
+        complex_weights = True
     ):
         kernel_size = _triple(kernel_size)
         stride = _triple(stride)
@@ -702,7 +702,7 @@ class ConvTranspose1d(_ConvTransposeNd):
         bias: bool = True,
         dilation: _size_1_t = 1,
         padding_mode: str = 'zeros',
-        complex_weights = False
+        complex_weights = True
     ):
         kernel_size = _single(kernel_size)
         stride = _single(stride)
@@ -845,7 +845,7 @@ class ConvTranspose2d(_ConvTransposeNd):
         bias: bool = True,
         dilation: int = 1,
         padding_mode: str = 'zeros',
-        complex_weights = False
+        complex_weights = True
     ):
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
@@ -985,7 +985,7 @@ class ConvTranspose3d(_ConvTransposeNd):
         bias: bool = True,
         dilation: _size_3_t = 1,
         padding_mode: str = 'zeros',
-        complex_weights = False
+        complex_weights = True
     ):
         kernel_size = _triple(kernel_size)
         stride = _triple(stride)
