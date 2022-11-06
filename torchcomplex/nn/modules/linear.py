@@ -55,7 +55,7 @@ class Linear(Module):
     weight: Union[Tensor, Tuple[Tensor, Tensor]]
     bias: Optional[Union[Tensor, Tuple[Tensor, Tensor]]]
 
-    def __init__(self, in_features: int, out_features: int, bias: bool = True, complex_weights: bool = False) -> None:
+    def __init__(self, in_features: int, out_features: int, bias: bool = True, complex_weights: bool = True) -> None:
         super(Linear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -157,7 +157,7 @@ class Bilinear(Module):
     weight: Union[Tensor, Tuple[Tensor, Tensor]]
     bias: Optional[Union[Tensor, Tuple[Tensor, Tensor]]]
 
-    def __init__(self, in1_features: int, in2_features: int, out_features: int, bias: bool = True, complex_weights: bool = False) -> None:
+    def __init__(self, in1_features: int, in2_features: int, out_features: int, bias: bool = True, complex_weights: bool = True) -> None:
         super(Bilinear, self).__init__()
         self.in1_features = in1_features
         self.in2_features = in2_features

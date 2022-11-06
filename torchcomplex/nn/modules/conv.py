@@ -72,7 +72,7 @@ class _ConvNd(Module):
                  groups: int,
                  bias: bool,
                  padding_mode: str,
-                 complex_weights=False) -> None:
+                 complex_weights=True) -> None:
         super(_ConvNd, self).__init__()
         if in_channels % groups != 0:
             raise ValueError('in_channels must be divisible by groups')

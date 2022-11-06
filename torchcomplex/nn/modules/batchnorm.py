@@ -28,7 +28,7 @@ class _NormBase(Module):
         affine: bool = True,
         track_running_stats: bool = True,
         naive = False,
-        complex_weights = False
+        complex_weights = True
     ) -> None:
         super(_NormBase, self).__init__()
         self.num_features = num_features
@@ -139,7 +139,7 @@ class _NormBase(Module):
 class _BatchNorm(_NormBase):
 
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
-                 track_running_stats=True, naive=False, complex_weights=False):
+                 track_running_stats=True, naive=False, complex_weights=True):
         super(_BatchNorm, self).__init__(
             num_features, eps, momentum, affine, track_running_stats, naive, complex_weights)
 
