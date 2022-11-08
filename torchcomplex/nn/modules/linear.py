@@ -97,9 +97,7 @@ class Linear(Module):
         return cF.linear(input, self.weight, self.bias)
 
     def extra_repr(self) -> str:
-        return 'in_features={}, out_features={}, bias={}'.format(
-            self.in_features, self.out_features, self.bias is not None
-        )
+        return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}'
 
 
 # This class exists solely for Transformer; it has an annotation stating
@@ -199,6 +197,4 @@ class Bilinear(Module):
         return cF.bilinear(input1, input2, self.weight, self.bias)
 
     def extra_repr(self) -> str:
-        return 'in1_features={}, in2_features={}, out_features={}, bias={}'.format(
-            self.in1_features, self.in2_features, self.out_features, self.bias is not None
-        )
+        return f'in1_features={self.in1_features}, in2_features={self.in2_features}, out_features={self.out_features}, bias={self.bias is not None}'

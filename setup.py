@@ -11,7 +11,7 @@ with open('HISTORY.rst', "r", encoding='utf8') as history_file:
     history = history_file.read()
 
 requirements = [
-    
+
 ]
 
 setup_requirements = [

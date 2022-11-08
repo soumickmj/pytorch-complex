@@ -37,8 +37,7 @@ class CReLU(Module):
         return cF.crelu(input, inplace=self.inplace)
 
     def extra_repr(self) -> str:
-        inplace_str = 'inplace=True' if self.inplace else ''
-        return inplace_str
+        return 'inplace=True' if self.inplace else ''
 
 class zReLU(Module):
     '''
@@ -61,8 +60,7 @@ class zReLU(Module):
         return cF.zrelu(input, inplace=self.inplace)
 
     def extra_repr(self) -> str:
-        inplace_str = 'inplace=True' if self.inplace else ''
-        return inplace_str
+        return 'inplace=True' if self.inplace else ''
 
 class modReLU(Module):
     '''
@@ -85,8 +83,7 @@ class modReLU(Module):
         return cF.modrelu(input, bias=self.bias, inplace=self.inplace)
 
     def extra_repr(self) -> str:
-        inplace_str = 'inplace=True' if self.inplace else ''
-        return inplace_str
+        return 'inplace=True' if self.inplace else ''
 
 class CmodReLU(Module):
     '''Compute the Complex modulus relu of the complex tensor in re-im pair.
@@ -108,8 +105,7 @@ class CmodReLU(Module):
         return cF.cmodrelu(input, threshold=self.threshold, inplace=self.inplace)
 
     def extra_repr(self) -> str:
-        inplace_str = 'inplace=True' if self.inplace else ''
-        return inplace_str
+        return 'inplace=True' if self.inplace else ''
 
 class AdaptiveCmodReLU(Module):
     '''Compute the Complex modulus relu of the complex tensor in re-im pair.
@@ -123,15 +119,14 @@ class AdaptiveCmodReLU(Module):
     def __init__(self, *dim, inplace: bool = False):
         super(AdaptiveCmodReLU, self).__init__()
         self.inplace = inplace
-        self.dim = dim if dim else (1,)
+        self.dim = dim or (1,)
         self.threshold = Parameter(torch.randn(*self.dim) * 0.02)
 
     def forward(self, input: Tensor) -> Tensor:
         return cF.cmodrelu(input, threshold=self.threshold, inplace=self.inplace)
 
     def extra_repr(self) -> str:
-        inplace_str = 'inplace=True' if self.inplace else ''
-        return inplace_str
+        return 'inplace=True' if self.inplace else ''
         
 class Softmax(Module):
     __constants__ = ['dim']

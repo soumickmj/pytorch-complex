@@ -109,31 +109,29 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
     """
 
     if domain not in ('time', 'freq'):
-        raise ValueError("Acceptable domain flags are 'time' or"
-                         " 'freq', not domain={}".format(domain))
+        raise ValueError(
+            f"Acceptable domain flags are 'time' or 'freq', not domain={domain}"
+        )
+
 
     if hasattr(axis, "__len__") and not hasattr(num, "__len__"):
         num = [num]*len(axis)
-    
+
     if hasattr(num, "__len__"):
-        if hasattr(axis, "__len__") and len(num)==len(axis):
-            _temp = x
-            _t_list = []
-            for i in range(len(num)):
-                _num = num[i]
-                _axis = axis[i]
-                if t is None:
-                    _temp = resample(_temp, _num, t, _axis, window, domain)
-                else:
-                    _temp, _t = resample(_temp, _num, t, _axis, window, domain)
-                    _t_list.append(_t)
-            if t is None:
-                return _temp
-            else:
-                return _temp, torch.stack(_t_list)
-        else:
+        if not hasattr(axis, "__len__") or len(num) != len(axis):
             raise ValueError("if num is array like, then axis also has to be array like and of the same length")
 
+        _temp = x
+        _t_list = []
+        for i in range(len(num)):
+            _num = num[i]
+            _axis = axis[i]
+            if t is None:
+                _temp = resample(_temp, _num, t, _axis, window, domain)
+            else:
+                _temp, _t = resample(_temp, _num, t, _axis, window, domain)
+                _t_list.append(_t)
+        return _temp if t is None else (_temp, torch.stack(_t_list))
     Nx = x.shape[axis]
 
     # Check if we can use faster real FFT
@@ -141,10 +139,7 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
 
     if domain == 'time':
         # Forward transform
-        if real_input:
-            X = torch.fft.rfft(x, dim=axis)
-        else:  # Full complex FFT
-            X = torch.fft.fft(x, dim=axis)
+        X = torch.fft.rfft(x, dim=axis) if real_input else torch.fft.fft(x, dim=axis)
     else:  # domain == 'freq'
         X = x
 
@@ -177,10 +172,7 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
 
     # Placeholder array for output spectrum
     newshape = list(x.shape)
-    if real_input:
-        newshape[axis] = num // 2 + 1
-    else:
-        newshape[axis] = num
+    newshape[axis] = num // 2 + 1 if real_input else num
     Y = torch.zeros(newshape, dtype=X.dtype, device=x.device)
 
     # Copy positive frequency components (and Nyquist, if present)
@@ -189,11 +181,9 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
     sl = [slice(None)] * x.ndim
     sl[axis] = slice(0, nyq)
     Y[tuple(sl)] = X[tuple(sl)]
-    if not real_input:
-        # Copy negative frequency components
-        if N > 2:  # (slice expression doesn't collapse to empty array)
-            sl[axis] = slice(nyq - N, None)
-            Y[tuple(sl)] = X[tuple(sl)]
+    if not real_input and N > 2:
+        sl[axis] = slice(nyq - N, None)
+        Y[tuple(sl)] = X[tuple(sl)]
 
     # Split/join Nyquist component(s) if present
     # So far we have set Y[+N/2]=X[+N/2]
@@ -227,6 +217,5 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
 
     if t is None:
         return y
-    else:
-        new_t = torch.arange(0, num) * (t[1] - t[0]) * Nx / float(num) + t[0]
-        return y, new_t
+    new_t = torch.arange(0, num) * (t[1] - t[0]) * Nx / float(num) + t[0]
+    return y, new_t
