@@ -82,21 +82,20 @@ class _NormBase(Module):
                 self.running_mean.zero_()  # type: ignore[operator]
                 self.running_var.fill_(1)  # type: ignore[operator]
                 self.num_batches_tracked.zero_()  # type: ignore[operator]
-        else:
-            if self.track_running_stats:
-                # running_mean/running_var/num_batches... are registerd at runtime depending
-                # if self.track_running_stats is on
-                self.running_mean.zero_()  # type: ignore[operator]
-                self.running_var[0, 0].fill_(1)
-                self.running_var[1, 0].zero_()
-                self.running_var[0, 1].zero_()
-                self.running_var[1, 1].fill_(1)
-                self.num_batches_tracked.zero_()  # type: ignore[operator]
+        elif self.track_running_stats:
+            # running_mean/running_var/num_batches... are registerd at runtime depending
+            # if self.track_running_stats is on
+            self.running_mean.zero_()  # type: ignore[operator]
+            self.running_var[0, 0].fill_(1)
+            self.running_var[1, 0].zero_()
+            self.running_var[0, 1].zero_()
+            self.running_var[1, 1].fill_(1)
+            self.num_batches_tracked.zero_()  # type: ignore[operator]
 
     def reset_parameters(self) -> None:
         self.reset_running_stats()
-        if self.naive:
-            if self.affine:
+        if self.affine:
+            if self.naive:
                 if self.complex_weights:
                     init.ones_(self.weight)
                     init.zeros_(self.bias)
@@ -105,8 +104,7 @@ class _NormBase(Module):
                     init.zeros_(self.bias[0])
                     init.ones_(self.weight[1])
                     init.zeros_(self.bias[1])
-        else:
-            if self.affine:
+            else:
                 init.ones_(self.weight[0, 0])
                 init.zeros_(self.weight[1, 0])
                 init.zeros_(self.weight[0, 1])
@@ -127,7 +125,7 @@ class _NormBase(Module):
         if (version is None or version < 2) and self.track_running_stats:
             # at version 2: added num_batches_tracked buffer
             #               this should have a default value of 0
-            num_batches_tracked_key = prefix + 'num_batches_tracked'
+            num_batches_tracked_key = f'{prefix}num_batches_tracked'
             if num_batches_tracked_key not in state_dict:
                 state_dict[num_batches_tracked_key] = torch.tensor(0, dtype=torch.long)
 
@@ -149,19 +147,17 @@ class _BatchNorm(_NormBase):
         # exponential_average_factor is set to self.momentum
         # (when it is available) only so that it gets updated
         # in ONNX graph when this node is exported to ONNX.
-        if self.momentum is None:
-            exponential_average_factor = 0.0
-        else:
-            exponential_average_factor = self.momentum
-
-        if self.training and self.track_running_stats:
-            # TODO: if statement only here to tell the jit to skip emitting this when it is None
-            if self.num_batches_tracked is not None:  # type: ignore
-                self.num_batches_tracked = self.num_batches_tracked + 1  # type: ignore
-                if self.momentum is None:  # use cumulative moving average
-                    exponential_average_factor = 1.0 / float(self.num_batches_tracked)
-                else:  # use exponential moving average
-                    exponential_average_factor = self.momentum
+        exponential_average_factor = 0.0 if self.momentum is None else self.momentum
+        if (
+            self.training
+            and self.track_running_stats
+            and self.num_batches_tracked is not None
+        ):
+            self.num_batches_tracked = self.num_batches_tracked + 1  # type: ignore
+            if self.momentum is None:  # use cumulative moving average
+                exponential_average_factor = 1.0 / float(self.num_batches_tracked)
+            else:  # use exponential moving average
+                exponential_average_factor = self.momentum
 
         r"""
         Decide whether the mini-batch stats should be used for normalization rather than the buffers.
@@ -254,9 +250,8 @@ class BatchNorm1d(_BatchNorm):
     """
 
     def _check_input_dim(self, input):
-        if input.dim() != 2 and input.dim() != 3:
-            raise ValueError('expected 2D or 3D input (got {}D input)'
-                             .format(input.dim()))
+        if input.dim() not in [2, 3]:
+            raise ValueError(f'expected 2D or 3D input (got {input.dim()}D input)')
 
 
 class BatchNorm2d(_BatchNorm):
@@ -328,8 +323,7 @@ class BatchNorm2d(_BatchNorm):
 
     def _check_input_dim(self, input):
         if input.dim() != 4:
-            raise ValueError('expected 4D input (got {}D input)'
-                             .format(input.dim()))
+            raise ValueError(f'expected 4D input (got {input.dim()}D input)')
 
 
 class BatchNorm3d(_BatchNorm):
@@ -402,5 +396,4 @@ class BatchNorm3d(_BatchNorm):
 
     def _check_input_dim(self, input):
         if input.dim() != 5:
-            raise ValueError('expected 5D input (got {}D input)'
-                             .format(input.dim()))
+            raise ValueError(f'expected 5D input (got {input.dim()}D input)')

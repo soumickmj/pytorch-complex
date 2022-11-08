@@ -21,10 +21,7 @@ class _tensorprocessor():
         if cls.complex_weight:
             return Parameter(tensor[0] + 1j*tensor[1])
         else:
-            if type(tensor) is ParameterList:
-                return tensor
-            else:
-                return ParameterList(tensor)
+            return tensor if type(tensor) is ParameterList else ParameterList(tensor)
 
 # These no_grad_* functions are necessary as wrappers around the parts of these
 # functions that use `with torch.no_grad()`. The JIT doesn't support context
@@ -272,9 +269,7 @@ def _calculate_fan_in_and_fan_out(tensor):
 
     num_input_fmaps = tensor.size(1)
     num_output_fmaps = tensor.size(0)
-    receptive_field_size = 1
-    if tensor.dim() > 2:
-        receptive_field_size = tensor[0][0].numel()
+    receptive_field_size = tensor[0][0].numel() if tensor.dim() > 2 else 1
     fan_in = num_input_fmaps * receptive_field_size
     fan_out = num_output_fmaps * receptive_field_size
 
@@ -336,7 +331,7 @@ def _calculate_correct_fan(tensor, mode):
     mode = mode.lower()
     valid_modes = ['fan_in', 'fan_out']
     if mode not in valid_modes:
-        raise ValueError("Mode {} not supported, please use one of {}".format(mode, valid_modes))
+        raise ValueError(f"Mode {mode} not supported, please use one of {valid_modes}")
 
     fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
     return fan_in if mode == 'fan_in' else fan_out
@@ -485,7 +480,7 @@ def trabelsi_standard_(tensor, kind="glorot"):
     tensor = _tensorprocessor._preprocess(tensor)
 
     fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor[0])
-    if kind == "glorot" or kind == "xavier":
+    if kind in ["glorot", "xavier"]:
         scale = 1 / math.sqrt(fan_in + fan_out)
     else:
         scale = 1 / math.sqrt(fan_in)
@@ -524,7 +519,7 @@ def trabelsi_independent_(tensor, kind="glorot"):
     M = np.dot(u[:, :k], vh[:, :k].conjugate().T)
 
     fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor[0])
-    if kind == "glorot" or kind == "xavier":
+    if kind in ["glorot", "xavier"]:
         scale = 1 / math.sqrt(fan_in + fan_out)
     else:
         scale = 1 / math.sqrt(fan_in)

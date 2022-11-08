@@ -80,8 +80,10 @@ class _ConvNd(Module):
             raise ValueError('out_channels must be divisible by groups')
         valid_padding_modes = {'zeros', 'reflect', 'replicate', 'circular'}
         if padding_mode not in valid_padding_modes:
-            raise ValueError("padding_mode must be one of {}, but got padding_mode='{}'".format(
-                valid_padding_modes, padding_mode))
+            raise ValueError(
+                f"padding_mode must be one of {valid_padding_modes}, but got padding_mode='{padding_mode}'"
+            )
+
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -99,7 +101,7 @@ class _ConvNd(Module):
         # reverse order than the dimension.
         self._reversed_padding_repeated_twice = _reverse_repeat_tuple(self.padding, 2)
 
-        
+
         if complex_weights:
             if transposed:
                 self.weight = Parameter(torch.Tensor(
@@ -555,7 +557,10 @@ class _ConvTransposeNd(_ConvNd):
                  padding, dilation, transposed, output_padding,
                  groups, bias, padding_mode, complex_weights):
         if padding_mode != 'zeros':
-            raise ValueError('Only "zeros" padding mode is supported for {}'.format(self.__class__.__name__))
+            raise ValueError(
+                f'Only "zeros" padding mode is supported for {self.__class__.__name__}'
+            )
+
 
         super(_ConvTransposeNd, self).__init__(
             in_channels, out_channels, kernel_size, stride,
@@ -565,43 +570,41 @@ class _ConvTransposeNd(_ConvNd):
     # dilation being an optional parameter is for backwards
     # compatibility
     def _output_padding(self, input, output_size, stride, padding, kernel_size, dilation=None):
-        # type: (Tensor, Optional[List[int]], List[int], List[int], List[int], Optional[List[int]]) -> List[int]
         if output_size is None:
-            ret = _single(self.output_padding)  # converting to list if was not already
-        else:
-            k = input.dim() - 2
-            if len(output_size) == k + 2:
-                output_size = output_size[2:]
-            if len(output_size) != k:
+            return _single(self.output_padding)
+        k = input.dim() - 2
+        if len(output_size) == k + 2:
+            output_size = output_size[2:]
+        if len(output_size) != k:
+            raise ValueError(
+                f"output_size must have {k} or {k + 2} elements (got {len(output_size)})"
+            )
+
+
+        min_sizes = torch.jit.annotate(List[int], [])
+        max_sizes = torch.jit.annotate(List[int], [])
+        for d in range(k):
+            dim_size = ((input.size(d + 2) - 1) * stride[d] -
+                        2 * padding[d] +
+                        (dilation[d] if dilation is not None else 1) * (kernel_size[d] - 1) + 1)
+            min_sizes.append(dim_size)
+            max_sizes.append(min_sizes[d] + stride[d] - 1)
+
+        for i in range(len(output_size)):
+            size = output_size[i]
+            min_size = min_sizes[i]
+            max_size = max_sizes[i]
+            if size < min_size or size > max_size:
                 raise ValueError(
-                    "output_size must have {} or {} elements (got {})"
-                    .format(k, k + 2, len(output_size)))
+                    f"requested an output size of {output_size}, but valid sizes range from {min_sizes} to {max_sizes} (for an input of {input.size()[2:]})"
+                )
 
-            min_sizes = torch.jit.annotate(List[int], [])
-            max_sizes = torch.jit.annotate(List[int], [])
-            for d in range(k):
-                dim_size = ((input.size(d + 2) - 1) * stride[d] -
-                            2 * padding[d] +
-                            (dilation[d] if dilation is not None else 1) * (kernel_size[d] - 1) + 1)
-                min_sizes.append(dim_size)
-                max_sizes.append(min_sizes[d] + stride[d] - 1)
 
-            for i in range(len(output_size)):
-                size = output_size[i]
-                min_size = min_sizes[i]
-                max_size = max_sizes[i]
-                if size < min_size or size > max_size:
-                    raise ValueError((
-                        "requested an output size of {}, but valid sizes range "
-                        "from {} to {} (for an input of {})").format(
-                            output_size, min_sizes, max_sizes, input.size()[2:]))
+        res = torch.jit.annotate(List[int], [])
+        for d in range(k):
+            res.append(output_size[d] - min_sizes[d])
 
-            res = torch.jit.annotate(List[int], [])
-            for d in range(k):
-                res.append(output_size[d] - min_sizes[d])
-
-            ret = res
-        return ret
+        return res
 
 
 class ConvTranspose1d(_ConvTransposeNd):

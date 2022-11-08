@@ -143,8 +143,8 @@ class Upsample(Module):
 
     def extra_repr(self) -> str:
         if self.scale_factor is not None:
-            info = 'scale_factor=' + str(self.scale_factor)
+            info = f'scale_factor={str(self.scale_factor)}'
         else:
-            info = 'size=' + str(self.size)
-        info += ', mode=' + self.mode
+            info = f'size={str(self.size)}'
+        info += f', mode={self.mode}'
         return info
