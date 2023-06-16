@@ -17,18 +17,18 @@ If you like this repository, please click on Star!
 
 If you use this package or benift from the codes of this repo, please cite the following in your publications:
 
-> [Soumick Chatterjee, Chompunuch Sarasaen, Alessandro Sciarra, Mario Breitkopf, Steffen Oeltze-Jafra, Andreas Nürnberger, Oliver Speck: Going beyond the image space: undersampled MRI reconstruction directly in the k-space using a complex valued residual neural network (ISMRM, May 2021)](https://www.researchgate.net/publication/349589092_Going_beyond_the_image_space_undersampled_MRI_reconstruction_directly_in_the_k-space_using_a_complex_valued_residual_neural_network)
+> [Soumick Chatterjee, Pavan Tummala, Oliver Speck, Andreas Nürnberger: Complex Network for Complex Problems: A comparative study of CNN and Complex-valued CNN (IEEE IPAS, Dec 2023)](https://arxiv.org/abs/2302.04584)
 
 BibTeX entry:
 
 ```bibtex
-@inproceedings{mickISMRM21ksp,
-      author = {Chatterjee, Soumick and Sarasaen, Chompunuch and Sciarra, Alessandro and Breitkopf, Mario and Oeltze-Jafra, Steffen and Nürnberger, Andreas and                     Speck, Oliver},
-      year = {2021},
-      month = {05},
-      pages = {1757},
-      title = {Going beyond the image space: undersampled MRI reconstruction directly in the k-space using a complex valued residual neural network},
-      booktitle={2021 ISMRM \& SMRT Annual Meeting \& Exhibition}
+@inproceedings{chatterjee2022complex,
+  title={Complex Network for Complex Problems: A comparative study of CNN and Complex-valued CNN},
+  author={Chatterjee, Soumick and Tummala, Pavan and Speck, Oliver and N{\"u}rnberger, Andreas},
+  booktitle={2022 IEEE 5th International Conference on Image Processing Applications and Systems (IPAS)},
+  pages={1--5},
+  year={2022},
+  organization={IEEE}
 }
 ```
 Thank you so much for your support.
