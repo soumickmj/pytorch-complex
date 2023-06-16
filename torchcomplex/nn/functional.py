@@ -291,15 +291,16 @@ def zrelu(input: Tensor, inplace: bool = False) -> Tensor:
     else:
         return F.relu(input, inplace=inplace)
 
-def modrelu(input: Tensor, bias: int, inplace: bool = False) -> Tensor:
+def modrelu(input: Tensor, bias: Tensor, inplace: bool = False) -> Tensor:
     '''
     Martin Arjovsky, Amar Shah, and Yoshua Bengio. Unitary evolution recurrent neural networks. arXiv preprint arXiv:1511.06464, 2015.
     Notice that |z| (z.magnitude) is always positive, so if b > 0  then |z| + b > = 0 always.
     In order to have any non-linearity effect, b must be smaller than 0 (b<0).
+    Update: The implementation has been updated following: \\operatorname{ReLU}(|z|+b) \\frac{z}{|z|}
     '''
     if input.is_complex():
         z_mag = torch.abs(input)
-        return input * ((z_mag + bias) >= 0).float() * (1 + bias / z_mag)
+        return F.relu(z_mag + bias) * (input / z_mag)
     else:
         return F.relu(input, inplace=inplace)
 
@@ -334,6 +335,23 @@ def tanh(input: Tensor):
         return torch.view_as_complex(torch.stack((real, imag),dim=-1))
     else:
         return F.tanh(input)
+    
+def hirose(input: Tensor, m_sqaure: float = 1):
+    '''
+    A. Hirose. Complex-valued neural networks: Advances and applications. John Wiley & Sons, 2013. 
+    and
+    Wolter and Yao. Complex Gated Recurrent Neural Networks. NeurIPS 2018. (Eq. 5) https://papers.nips.cc/paper_files/paper/2018/file/652cf38361a209088302ba2b8b7f51e0-Paper.pdf
+    '''
+    mag_input = torch.abs(input)
+    return F.tanh(mag_input/m_sqaure) * (input / mag_input)
+
+def modsigmoid(input: Tensor, alpha: float = 0.5):
+    '''
+    Wolter and Yao. Complex Gated Recurrent Neural Networks. NeurIPS 2018. (Eq. 13) https://papers.nips.cc/paper_files/paper/2018/file/652cf38361a209088302ba2b8b7f51e0-Paper.pdf
+    and
+    Xie et al. Complex Recurrent Variational Autoencoder with Application to Speech Enhancement. 2023. arXiv:2204.02195v2
+    '''
+    return torch.sigmoid(alpha * input.real + (1 - alpha) * input.imag)
 
 def sigmoid(input: Tensor):
     if input.is_complex():

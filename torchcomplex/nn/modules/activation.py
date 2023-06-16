@@ -69,6 +69,7 @@ class modReLU(Module):
     Martin Arjovsky, Amar Shah, and Yoshua Bengio. Unitary evolution recurrent neural networks. arXiv preprint arXiv:1511.06464, 2015.
     Notice that |z| (z.magnitude) is always positive, so if b > 0  then |z| + b > = 0 always.
     In order to have any non-linearity effect, b must be smaller than 0 (b<0).
+    Update: The implementation has been updated following: \\operatorname{ReLU}(|z|+b) \\frac{z}{|z|}
     
     Warning:
     Inplace will only be used if the input is real (i.e. while using the default relu of PyTorch)
@@ -76,10 +77,10 @@ class modReLU(Module):
     __constants__ = ['inplace']
     inplace: bool
 
-    def __init__(self, bias: int, inplace: bool = False):
+    def __init__(self, bias: float, inplace: bool = False):
         super(modReLU, self).__init__()
         self.inplace = inplace
-        self.bias = bias
+        self.bias = Parameter(torch.rand(1) * 0.25)
 
     def forward(self, input: Tensor) -> Tensor:
         return cF.modrelu(input, bias=self.bias, inplace=self.inplace)
@@ -160,7 +161,40 @@ class Softmax2d(Module):
 class Tanh(Module):
     def forward(self, input: Tensor) -> Tensor:
         return cF.tanh(input)
+    
+class Hirose(Module):
+    '''
+    A. Hirose. Complex-valued neural networks: Advances and applications. John Wiley & Sons, 2013. 
+    and
+    Wolter and Yao. Complex Gated Recurrent Neural Networks. NeurIPS 2018. (Eq. 5) https://papers.nips.cc/paper_files/paper/2018/file/652cf38361a209088302ba2b8b7f51e0-Paper.pdf
+    '''
+    __constants__ = ['m_sqaure']
+    m_sqaure: float
+
+    def __init__(self, m_sqaure: float = 1.0):
+        super(Hirose, self).__init__()
+        self.m_sqaure = m_sqaure
+
+    def forward(self, input: Tensor) -> Tensor:
+        return cF.hirose(input, m_sqaure=self.m_sqaure)
 
 class Sigmoid(Module):
     def forward(self, input: Tensor) -> Tensor:
         return cF.sigmoid(input)
+    
+class modSigmoid(Module):
+    '''
+    Wolter and Yao. Complex Gated Recurrent Neural Networks. NeurIPS 2018. (Eq. 13) https://papers.nips.cc/paper_files/paper/2018/file/652cf38361a209088302ba2b8b7f51e0-Paper.pdf
+    and
+    Xie et al. Complex Recurrent Variational Autoencoder with Application to Speech Enhancement. 2023. arXiv:2204.02195v2
+    '''
+    __constants__ = ['alpha']
+    alpha: float
+
+    def __init__(self, alpha: float = 0.5):
+        super(modSigmoid, self).__init__()
+        assert alpha >= 0.0 and alpha <= 1.0, "alpha must be between 0 and 1"
+        self.alpha = alpha
+
+    def forward(self, input: Tensor) -> Tensor:
+        return cF.modsigmoid(input, alpha=self.alpha)
