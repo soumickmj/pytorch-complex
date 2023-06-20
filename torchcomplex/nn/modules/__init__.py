@@ -15,7 +15,7 @@ from .linear import Identity, Linear, Bilinear
 from .conv import Conv1d, Conv2d, Conv3d, \
     ConvTranspose1d, ConvTranspose2d, ConvTranspose3d
 from .activation import GenericComplexActivation, Sigmoid, Tanh, \
-    Softmax, Softmax2d, CReLU, zReLU, modReLU, CmodReLU, AdaptiveCmodReLU
+    Softmax, Softmax2d, CReLU, zReLU, modReLU, CmodReLU, AdaptiveCmodReLU, Hirose, modSigmoid
 from .pooling import AvgPool1d, AvgPool2d, AvgPool3d, MaxPool1d, MaxPool2d, MaxPool3d, \
     MaxUnpool1d, MaxUnpool2d, MaxUnpool3d, FractionalMaxPool2d, FractionalMaxPool3d, LPPool1d, LPPool2d, \
     AdaptiveMaxPool1d, AdaptiveMaxPool2d, AdaptiveMaxPool3d, AdaptiveAvgPool1d, AdaptiveAvgPool2d, AdaptiveAvgPool3d

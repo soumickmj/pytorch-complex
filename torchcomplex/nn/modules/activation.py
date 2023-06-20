@@ -77,7 +77,7 @@ class modReLU(Module):
     __constants__ = ['inplace']
     inplace: bool
 
-    def __init__(self, bias: float, inplace: bool = False):
+    def __init__(self, inplace: bool = False):
         super(modReLU, self).__init__()
         self.inplace = inplace
         self.bias = Parameter(torch.rand(1) * 0.25)
