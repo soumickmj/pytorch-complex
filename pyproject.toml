@@ -1,8 +1,20 @@
 [project]
 name = "torchcomplex"
-version = "0.1.2"
+version = "0.1.3"
 description = "Complex Modules for PyTorch"
 authors = [{name = "Soumick Chatterjee", email = "soumick.chatterjee@ovgu.de"}]
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
 requires-python = ">=3.6"
 
 [build-system]
