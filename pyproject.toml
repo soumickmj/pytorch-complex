@@ -1,5 +1,5 @@
 [project]
-name = "pytorch-complex"
+name = "torchcomplex"
 version = "0.1.2"
 description = "Complex Modules for PyTorch"
 authors = [{name = "Soumick Chatterjee", email = "soumick.chatterjee@ovgu.de"}]
