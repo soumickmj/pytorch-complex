@@ -1,0 +1,10 @@
+[project]
+name = "pytorch-complex"
+version = "0.1.2"
+description = "Complex Modules for PyTorch"
+authors = [{name = "Soumick Chatterjee", email = "soumick.chatterjee@ovgu.de"}]
+requires-python = ">=3.6"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
