@@ -15,9 +15,9 @@ except FileNotFoundError:
 
 setuptools.setup(
     name="torchcomplex",
-    version="0.1.2",
+    version="0.2.0",
     author="Soumick Chatterjee",
-    author_email="soumick.chatterjee@ovgu.de",
+    author_email="contact@soumick.com",
     description="Complex Modules for PyTorch",
     long_description=readme + "\n\n" + history,
     long_description_content_type="text/markdown",

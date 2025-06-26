@@ -198,3 +198,40 @@ class modSigmoid(Module):
 
     def forward(self, input: Tensor) -> Tensor:
         return cF.modsigmoid(input, alpha=self.alpha)
+
+class CSiLU(Module):
+    '''
+    Complex-Valued Sigmoid-Weighted Linear Unit (C-SiLU) [Developed in-house by Soumick Chatterjee, yet to be proposed in a paper]
+    This function effectively scales the complex number by the sigmoid of its modulus, thereby preserving the phase but modulating the magnitude based on the sigmoid function.
+
+     .. math::
+        \text{csilu}(x) = x * \sigma(|x|), \text{where } \sigma(|x|) \text{ is the logistic sigmoid performed on the magnitude of the complex input.}
+    '''
+
+    def __init__(self, inplace: bool = False):
+        super().__init__()
+
+    def forward(self, input: Tensor) -> Tensor:
+        return cF.csilu(input)
+    
+class CGELU(Module):
+    '''
+    Complex-Valued Gaussian Error Linear Unit (C-GELU) 
+    This can be either applied to the real and imaginary parts separately as [mode=saperate]:
+
+     .. math::
+        \text{cgelu}(x) = \operatorname{GELU}(Re(x)) + i \cdot \operatorname{GELU}(Im(x))
+
+    or, it can be applied only to the magnitude, preserving the phase as [mode=magnitude]:
+
+     .. math::
+        \text{cgelu}(x) = \operatorname{GELU}(|x|) \cdot e^{i \cdot \arg (x)}
+    '''
+
+    def __init__(self, mode: bool = "separate"):
+        super().__init__()
+        assert mode in ["separate", "magnitude"], "CGELU: mode must be either 'separate' or 'magnitude'"
+        self.mode = mode
+
+    def forward(self, input: Tensor) -> Tensor:
+        return cF.cgelu(input, mode=self.mode)

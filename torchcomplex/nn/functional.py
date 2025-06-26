@@ -128,7 +128,7 @@ def bilinear(input1, input2, weight, bias=None):
 
 
 # Batch Normalizatin
-def _whiten2x2(tensor, training=True, running_mean=None, running_cov=None,
+def _whiten2x2_batch_norm(tensor, training=True, running_mean=None, running_cov=None,
               momentum=0.1, nugget=1e-5):
     r"""Solve R M R = I for R and a given 2x2 matrix M = [[a, b], [c, d]].
 
@@ -253,7 +253,7 @@ def batch_norm(input, running_mean, running_var, weight=None, bias=None,
         x = torch.stack([input.real, input.imag], dim=0)
 
         # whiten and apply affine transformation
-        z = _whiten2x2(x, training=training, running_mean=running_mean,
+        z = _whiten2x2_batch_norm(x, training=training, running_mean=running_mean,
                     running_cov=running_var, momentum=momentum, nugget=eps)
 
         if weight is not None and bias is not None:
@@ -266,6 +266,249 @@ def batch_norm(input, running_mean, running_var, weight=None, bias=None,
 
         return torch.view_as_complex(torch.stack((z[0], z[1]),dim=-1))
 
+def inv_sqrtm2x2(
+    a: torch.Tensor,
+    b: torch.Tensor,
+    c: torch.Tensor,
+    d: torch.Tensor,
+    symmetric: bool = False,
+):
+    r"""
+    Inverse Squareroot of 2x2 Matrix
+    --------------------------------
+    
+    This code has been adapted from the PyTorch implementation of LayerNorm and from github.com/josiahwsmith10/complextorch/nn/functional.py from the following paper:
+        **Smith, Josiah W. "Complex-valued neural networks for data-driven signal processing and signal understanding." arXiv preprint arXiv:2309.07948 (2023)**
+            - https://arxiv.org/abs/2309.07948
+
+    Compute the inverse matrix square root of a 2x2 matrix: :math:`A^{-1/2}`
+    Improves computation speed of batch and layer normalization compared with PyTorch matrix inversion.
+
+    Following: https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix
+
+    Given matrix :math:`\mathbf{A}` as
+
+    .. math::
+        \mathbf{A} = \begin{bmatrix} a & b \\ c & d \end{bmatrix}.
+
+    Recall
+
+    .. math::
+        \mathbf{A}^{-1} = \frac{1}{\text{det}(\mathbf{A})} \begin{bmatrix} d & -b \\ -c & a \end{bmatrix}.
+
+    We define two parameters
+
+    .. math::
+        \delta &\triangleq \text{det}(\mathbf{A}) = ad - bc,
+        \tau &\triangleq \text{trace}(\mathbf{A}) = a + d.
+
+    Using :math:`\delta` and :math:`\tau`, we define two parameters to establish the relationship between :math:`\mathbf{A}` and its matrix square root :math:`\mathbf{A}^{1/2}` as
+
+    .. math::
+        s \triangleq \sqrt{\delta},
+        t \triangleq \sqrt{\tau + 2s}.
+
+    The matrix square root can be expressed as
+
+    .. math::
+        \mathbf{A}^{1/2} = \frac{1}{t} \begin{bmatrix} a+s & b \\ c & d+s \end{bmatrix}.
+
+    Hence, the inverse of the matrix square root can be defined as
+
+    .. math::
+        \mathbf{A}^{-1/2} = \frac{1}{st} \begin{bmatrix} d+s & -b \\ -c & a+s \end{bmatrix}.
+
+    Finally, defining
+
+    .. math::
+
+        \mathbf{B} \triangleq \begin{bmatrix} w & x \\ y & z \end{bmatrix} \triangleq \mathbf{A}^{-1/2}.
+
+    Hence,
+
+    .. math::
+
+        w &= \frac{d + s}{st},
+        x &= \frac{-b}{st},
+        y &= \frac{-c}{st},
+        z &= \frac{a + s}{st}.
+    """
+
+    if symmetric:
+        # If A is symmetric, b == c and x == y
+        # Hence, we ignore c and y to save one multiplaction
+        delta = a * d - b * b
+        tau = a + d
+
+        s = torch.sqrt(delta)
+        t = torch.sqrt(tau + 2 * s)
+
+        coeff = 1 / (s * t)
+
+        w, z = coeff * (d + s), coeff * (a + s)
+        x, y = -coeff * b, None
+    else:
+        delta = a * d - b * c
+        tau = a + d
+
+        s = torch.sqrt(delta)
+        t = torch.sqrt(tau + 2 * s)
+
+        coeff = 1 / (s * t)
+
+        w, z = coeff * (d + s), coeff * (a + s)
+        x, y = -coeff * b, -coeff * c
+
+    return w, x, y, z
+
+def _whiten2x2_layer_norm(
+    tensor: torch.Tensor,
+    normalized_shape,
+    eps: float = 1e-5,
+):
+    r"""
+    Layer Normalisation Whitening
+    -----------------------------
+
+    Performs 2x2 whitening for layer normalisation.
+    
+    This code has been adapted from the PyTorch implementation of LayerNorm and from github.com/josiahwsmith10/complextorch/nn/functional.py from the following paper:
+        **Smith, Josiah W. "Complex-valued neural networks for data-driven signal processing and signal understanding." arXiv preprint arXiv:2309.07948 (2023)**
+            - https://arxiv.org/abs/2309.07948
+    """
+    # assume tensor is 2 x B x F x ...
+    assert tensor.dim() >= 3
+
+    # Axes over which to compute mean and covariance
+    axes = [-(i + 1) for i in range(len(normalized_shape))]
+
+    # Compute the batch mean [2, B, 1, ...] and center the batch
+    mean = tensor.clone().mean(dim=axes, keepdim=True)
+    tensor -= mean
+
+    # head shape for broadcasting
+    head = mean.shape[1:]
+
+    # Compute the batch covariance [2, 2, F]
+    var = (tensor * tensor).mean(dim=axes) + eps
+    v_rr, v_ii = var[0], var[1]
+
+    v_ir = (tensor[0] * tensor[1]).mean(dim=axes)
+
+    # Compute inverse matrix square root for ZCA whitening
+    p, q, _, s = inv_sqrtm2x2(v_rr, v_ir, None, v_ii, symmetric=True)
+
+    # Whiten the batch
+    return torch.stack(
+        [
+            tensor[0] * p.view(head) + tensor[1] * q.view(head),
+            tensor[0] * q.view(head) + tensor[1] * s.view(head),
+        ],
+        dim=0,
+    )
+
+def layer_norm(input, normalized_shape, weight=None, bias=None, eps=1e-5):
+    r"""
+    Complex-Valued Layer Normalisation
+    ----------------------------------
+
+    Applies complex-valued layer normalisation extending the work of
+    (Trabelsi et al., 2018) for each channel across a batch of data.
+
+    Extending the batch normalisation whitening definitions in the following paper:
+
+        **J. A. Barrachina, C. Ren, G. Vieillard, C. Morisseau, and J.-P. Ovarlez. Theory and Implementation of Complex-Valued Neural Networks.**
+            - Section 6
+            - https://arxiv.org/abs/2302.08286
+
+    This code has been adapted from the PyTorch implementation of LayerNorm and from github.com/josiahwsmith10/complextorch/nn/functional.py from the following paper:
+        **Smith, Josiah W. "Complex-valued neural networks for data-driven signal processing and signal understanding." arXiv preprint arXiv:2309.07948 (2023)**
+            - https://arxiv.org/abs/2309.07948
+    """
+
+    # stack along the first axis
+    input = torch.stack([input.real, input.imag], dim=0)
+
+    # whiten
+    z = _whiten2x2_layer_norm(
+        input,
+        normalized_shape,
+        eps=eps,
+    )
+
+    # apply affine transformation
+    if weight is not None:
+        shape = *([1] * (input.dim() - 1 - len(normalized_shape))), *normalized_shape
+        weight = weight.view(2, 2, *shape)
+        z = torch.stack(
+            [
+                z[0] * weight[0, 0] + z[1] * weight[0, 1],
+                z[0] * weight[1, 0] + z[1] * weight[1, 1],
+            ],
+            dim=0,
+        ) + bias.view(2, *shape)
+
+    return torch.view_as_complex(torch.stack((z[0], z[1]),dim=-1))
+
+def _whiten2x2_group_norm(tensor, num_groups, eps=1e-5):
+    """
+    Performs 2x2 whitening for group normalisation on complex-valued tensors.
+    """
+    # Check for channel dimension and divisibility by num_groups
+    assert tensor.dim() >= 3
+    C = tensor.size(2)
+    assert C % num_groups == 0, "num_channels must be divisible by num_groups"
+
+    group_size = C // num_groups
+    tensor = tensor.view(2, tensor.shape[1], num_groups, group_size, *tensor.shape[3:])
+
+    # Compute mean and variance within groups
+    mean = tensor.mean(dim=[2, 3], keepdim=True)
+    tensor -= mean
+
+    # head shape for broadcasting
+    head = mean.shape[1:]
+
+    var = (tensor * tensor).mean(dim=[2, 3], keepdim=True) + eps
+
+    v_rr, v_ii = var[0][0], var[1][1]
+    v_ir = (tensor[0] * tensor[1]).mean(dim=[2, 3], keepdim=True)[0]
+
+    # Compute inverse square root of the covariance matrix
+    p, q, _, s = inv_sqrtm2x2(v_rr, v_ir, v_ir, v_ii)
+
+    # Whiten the tensor within each group
+    z = torch.stack([
+        tensor[0] * p.view(head) + tensor[1] * q.view(head),
+        tensor[0] * q.view(head) + tensor[1] * s.view(head)
+    ], dim=0)
+
+    return z.reshape(z.shape[0], z.shape[1], -1, *z.shape[4:])
+
+
+def group_norm(input, num_groups, weight = None, bias = None, eps = 1e-5):
+    """
+    Complex-Valued Group Normalisation
+    ----------------------------------
+    
+    Applies complex-valued group normalisation for each group across a batch of data.
+    """
+    input_stacked = torch.stack([input.real, input.imag], dim=0)
+    z = _whiten2x2_group_norm(input_stacked, num_groups, eps)
+
+    if weight is not None and bias is not None:
+        weight = weight.view(2, 2, 1, input.size(1), *([1] * (input.dim() - 2)))
+        bias = bias.view(2, 1, input.size(1), *([1] * (input.dim() - 2)))
+
+        z = torch.stack(
+            [
+                z[0] * weight[0, 0] + z[1] * weight[0, 1],
+                z[0] * weight[1, 0] + z[1] * weight[1, 1],
+            ],
+            dim=0,
+        ) + bias
+
+    return torch.view_as_complex(torch.stack((z[0], z[1]), dim=-1))
 
 # Activations
 
@@ -352,6 +595,39 @@ def modsigmoid(input: Tensor, alpha: float = 0.5):
     Xie et al. Complex Recurrent Variational Autoencoder with Application to Speech Enhancement. 2023. arXiv:2204.02195v2
     '''
     return torch.sigmoid(alpha * input.real + (1 - alpha) * input.imag)
+
+def csilu(input: Tensor):
+    '''
+    Complex-Valued Sigmoid-Weighted Linear Unit (C-SiLU) [Developed in-house by Soumick Chatterjee, yet to be proposed in a paper]
+    This function effectively scales the complex number by the sigmoid of its modulus, thereby preserving the phase but modulating the magnitude based on the sigmoid function.
+
+     .. math::
+        \text{csilu}(x) = x * \sigma(|x|), \text{where } \sigma(|x|) \text{ is the logistic sigmoid performed on the magnitude of the complex input.}
+    '''
+    return input * torch.sigmoid(torch.abs(input))
+
+def cgelu(input: Tensor, mode='separate'):
+    '''
+    Complex-Valued Gaussian Error Linear Unit (C-GELU) 
+    This can be either applied to the real and imaginary parts separately as [mode=saperate]:
+
+     .. math::
+        \text{cgelu}(x) = \operatorname{GELU}(Re(x)) + i \cdot \operatorname{GELU}(Im(x))
+
+    or, it can be applied only to the magnitude, preserving the phase as [mode=magnitude]:
+
+     .. math::
+        \text{cgelu}(x) = \operatorname{GELU}(|x|) \cdot e^{i \cdot \arg (x)}
+    '''
+    if mode == 'separate':
+        return complex_fcaller(F.gelu, input)   
+    else:
+        magnitude = torch.abs(input)
+        phase = torch.angle(input)
+        norm_magnitude = F.gelu(magnitude)
+        norm_real_part = norm_magnitude * torch.cos(phase)
+        norm_imag_part = norm_magnitude * torch.sin(phase)
+        return torch.complex(norm_real_part, norm_imag_part)
 
 def sigmoid(input: Tensor):
     if input.is_complex():
