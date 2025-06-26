@@ -14,7 +14,7 @@ except FileNotFoundError:
     history = ""
 
 setuptools.setup(
-    name="torchcomplex",
+    name="pytorch-complex",
     version="0.2.0",
     author="Soumick Chatterjee",
     author_email="contact@soumick.com",
