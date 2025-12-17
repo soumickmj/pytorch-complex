@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch-complex"
-version = "0.2.0"
+version = "0.2.1"
 description = "PyTorch wrapper for complex-valued operations. Usage: Similar to PyTorch. For using the Complex features of this library, just change the regular torch imports with torchcomplex imports. For example: import torchcomplex.nn as nn instead of import torch.nn as nn Then, simply nn.Conv2d for both torch and torchcomplex, for 2D Convolution"
 authors = ["Soumick Chatterjee, PhD <contact@soumick.com>"]
 license = "MIT license"
@@ -9,15 +9,9 @@ packages = [{include = "torchcomplex"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-torch = {version = "^2.7.1", source = "pytorch"}
-torchvision = {version = "^0.22.1", source = "pytorch"}
-torchaudio = {version = "^2.7.1", source = "pytorch"}
-
-
-[[tool.poetry.source]]
-name = "pytorch"
-url = "https://download.pytorch.org/whl/cu118"
-priority = "explicit"
+torch = ">=2.7.1"
+torchvision = ">=0.22.1"
+torchaudio = ">=2.7.1"
 
 [build-system]
 requires = ["poetry-core"]
